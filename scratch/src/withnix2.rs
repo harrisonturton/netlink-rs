@@ -2,13 +2,13 @@ use std::error::Error;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     let nlsock = netlink::connect()?;
-    netlink::dump_routes(nlsock)?;
+    netlink::dump_routes2(nlsock)?;
     Ok(())
 }
 
 mod netlink {
     use bincode::{deserialize, serialize};
-    use libc::{AF_INET, NLM_F_DUMP, NLM_F_MULTI, NLM_F_REQUEST, RTM_GETROUTE, NLMSG_DONE};
+    use libc::{AF_INET, NLMSG_DONE, NLM_F_DUMP, NLM_F_REQUEST, RTM_GETROUTE};
     use nix::errno::Errno;
     use nix::sys::socket::{
         bind, recvmsg, send, socket, AddressFamily, MsgFlags, NetlinkAddr, RecvMsg, SockFlag,
@@ -16,12 +16,9 @@ mod netlink {
     };
     use nix::unistd::getpid;
     use serde::Serialize;
-    use std::io::IoSliceMut;
+    use std::io::{IoSliceMut, Read};
     use std::mem::size_of;
     use std::os::fd::RawFd;
-
-    use crate::withnix::NetlinkRequest;
-    use crate::withnix2::netlink::messages::RouteMessage;
 
     pub const NLMSG_ALIGNTO: usize = 4;
 
@@ -37,6 +34,8 @@ mod netlink {
         ErrSendSocket(Errno),
         #[error("failed to recv from socket with errno {0}")]
         ErrRecvSocket(Errno),
+        #[error("expected more bytes but there were not enough")]
+        ErrUnexpectedEof,
         #[error("failed to serialize with error {0}")]
         ErrSerialize(bincode::Error),
         #[error("failed to deserialize with error {0}")]
@@ -48,7 +47,7 @@ mod netlink {
         let nfd = socket(
             AddressFamily::Netlink,
             SockType::Raw,
-            SockFlag::SOCK_CLOEXEC,
+            SockFlag::SOCK_CLOEXEC | SockFlag::SOCK_NONBLOCK,
             SockProtocol::NetlinkRoute,
         )
         .map_err(Error::ErrCreateSocket)?;
@@ -68,7 +67,7 @@ mod netlink {
     pub fn send_sock_val<T: Serialize>(nlsock: &NetlinkSocket, val: &T) -> Result<(), Error> {
         let bytes = serialize(&val).map_err(Error::ErrSerialize)?;
         send_sock(nlsock, &bytes)?;
-        todo!()
+        Ok(())
     }
 
     pub fn dump_routes_req() -> messages::NetlinkRequest<messages::RouteMessage> {
@@ -87,16 +86,113 @@ mod netlink {
         }
     }
 
-    /// Print a list of all routes
-    pub fn dump_routes(nlsock: NetlinkSocket) -> Result<(), Error> {
-        // log::trace!("Sending request");
+    // Read data from the socket until it blocks. This is detected by an error
+    // reading from the socket, so it assumes the socket has been opened with
+    // the SOCK_NONBLOCK flag.
+    pub fn read_until_block(nlsock: &NetlinkSocket) -> Result<Vec<u8>, Error> {
+        let mut bytes = vec![];
+
+        loop {
+            let chunk = recv_sock(&nlsock);
+            match chunk {
+                Ok(mut chunk) => bytes.append(&mut chunk),
+                Err(Error::ErrRecvSocket(Errno::EAGAIN)) => break,
+                Err(err) => return Err(err),
+            }
+        }
+
+        Ok(bytes)
+    }
+
+    pub fn read_all_messages(bytes: &[u8]) -> Result<Vec<messages::NetlinkMessage<&[u8]>>, Error> {
+        use messages::{NetlinkHeader, NetlinkMessage};
+
+        let mut messages = vec![];
+        let mut cursor = 0usize;
+
+        loop {
+            let header_len = nlmsg_hdrlen();
+            let header_bytes = &bytes[cursor..cursor + header_len];
+            let header: NetlinkHeader =
+                deserialize(&header_bytes).map_err(Error::ErrDeserialize)?;
+            cursor += header_len;
+
+            if header.nlmsg_type == NLMSG_DONE as u16 {
+                break;
+            }
+
+            log::debug!("{header:?}");
+
+            // Header length is inclusive of the header itself
+            let payload_len = header.nlmsg_len as usize - header_len;
+
+            if cursor + (payload_len as usize) > bytes.len() {
+                return Err(Error::ErrUnexpectedEof);
+            }
+
+            let payload = &bytes[cursor..cursor + payload_len as usize];
+            cursor += payload_len;
+
+            messages.push(NetlinkMessage { header, payload });
+        }
+
+        Ok(messages)
+    }
+
+    // loop {
+    //     let mut chunk = recv_sock(&nlsock)?;
+
+    //     if chunk.len() < nlmsg_hdrlen() {
+    //         return Err(Error::ErrUnexpectedEof);
+    //     }
+
+    //     let header_bytes = &chunk[cursor..nlmsg_hdrlen()];
+    //     let header: NetlinkHeader = deserialize(&header_bytes)
+    //         .map_err(Error::ErrDeserialize)?;
+
+    //     // Loop in case the payload of a single message is split over
+    //     // multiple recv() attempts
+    //     loop {
+    //         if chunk.len() >= header.nlmsg_len as usize {
+    //             break;
+    //         }
+    //         let mut next_chunk = recv_sock(&nlsock)?;
+    //         chunk.append(&mut next_chunk);
+    //     }
+
+    //     let payload = &chunk[cursor + nlmsg_hdrlen()..cursor + header.nlmsg_len as usize];
+
+    // }
+
+    // // let mut cursor = 0;
+    // // let mut messages: Vec<messages::NetlinkMessage<Vec<u8>>> = vec![];
+
+    // todo!()
+
+    pub fn dump_routes2(nlsock: NetlinkSocket) -> Result<(), Error> {
         let rtreq = dump_routes_req();
         send_sock_val(&nlsock, &rtreq)?;
-        // log::trace!("Sent request");
 
-        // log::trace!("Reading");
+        let data = read_until_block(&nlsock)?;
+        let messages = read_all_messages(&data)?;
+
+        log::info!("Received {} messages", messages.len());
+        for message in &messages {
+            log::trace!("  {message:?}");
+        }
+
+        log::info!("Done");
+
+        Ok(())
+    }
+
+    /// Print a list of all routes
+    pub fn dump_routes(nlsock: NetlinkSocket) -> Result<(), Error> {
+        let rtreq = dump_routes_req();
+        send_sock_val(&nlsock, &rtreq)?;
+
+        log::trace!("recv_sock");
         let mut bytes = recv_sock(&nlsock)?;
-        // log::trace!("Read {} bytes", bytes.len());
 
         let mut messages = vec![];
 
@@ -105,13 +201,12 @@ mod netlink {
             let mut cursor = base;
 
             if cursor + nlmsg_hdrlen() > bytes.len() {
-                // log::warn!("READING MORE BYTES");
+                log::trace!("recv_sock");
                 let mut more_bytes = recv_sock(&nlsock)?;
                 bytes.append(&mut more_bytes);
             }
 
             let header = {
-                // log::trace!("Reading NetlinkHeader");
                 let header_len = nlmsg_hdrlen();
                 let header_bytes = &bytes[cursor..cursor + header_len];
                 cursor += header_len;
@@ -121,16 +216,13 @@ mod netlink {
             };
 
             messages.push(NetlinkMessage::MessageHeader(header.clone()));
-            // log::info!("{header:?}");
-            
+
             if header.nlmsg_type == NLMSG_DONE as u16 {
-                // log::warn!("REACHED END OF MULTIPART MESSAGE");
-                break; 
+                break;
             }
 
             let rtm = {
-                // log::trace!("Reading RouteMessage");
-                let rtm_len = nlmsg_align::<RouteMessage>();
+                let rtm_len = nlmsg_align::<messages::RouteMessage>();
                 let rtm_bytes = &bytes[cursor..cursor + rtm_len];
                 cursor += rtm_len;
 
@@ -138,7 +230,6 @@ mod netlink {
             };
 
             messages.push(NetlinkMessage::RouteMessage(rtm.clone()));
-            // log::info!("{rtm:?}");
 
             loop {
                 if cursor as u32 == (base as u32 + header.nlmsg_len) {
@@ -147,23 +238,18 @@ mod netlink {
                     break;
                 }
 
-                // log::trace!("Reading RouteAttr");
                 let rattr_len = nlmsg_align::<messages::RouteAttrHeader>();
                 let rattr_bytes = &bytes[cursor..cursor + rattr_len];
                 let rattr = deserialize::<messages::RouteAttrHeader>(&rattr_bytes)
                     .map_err(Error::ErrDeserialize)?;
                 cursor += rattr_len;
-                // log::info!("{rattr:?}");
                 messages.push(NetlinkMessage::RouteAttrHeader(rattr.clone()));
 
-                // log::trace!("reading table value");
                 let attr_val_len = (rattr.rta_len - (rattr_len as u16)) as usize;
                 let attr_val_bytes = &bytes[cursor..cursor + attr_val_len];
                 messages.push(NetlinkMessage::RouteAttrValue(attr_val_bytes.to_vec()));
                 cursor += attr_val_len;
             }
-
-            // log::debug!("Processed");
         }
 
         log::info!("Received {} messages", messages.len());
@@ -233,6 +319,12 @@ mod netlink {
         // --------------------------------------------------
         // Netlink core messages
         // --------------------------------------------------
+
+        #[derive(PartialEq, Clone, Debug)]
+        pub struct NetlinkMessage<T> {
+            pub header: NetlinkHeader,
+            pub payload: T,
+        }
 
         #[repr(C)]
         #[derive(PartialEq, Clone, Debug, Default, Serialize, Deserialize)]
