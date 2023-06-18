@@ -11,9 +11,9 @@ implementing the transport layer of higher-level interfaces like
 ## Usage
 
 The following snippet will dump the kernel's main routing table. Note that the
-`rnetlink` header must be wrapped in the `netlink` header. This example
-demonstrates how the library implements the netlink transport, but not the
-protocol extensions built upon it.
+`rnetlink` header must be wrapped in a`Message`. This demonstrates that the
+library hides the transport-level details of the netlink protocol, but leaves
+implementing subsystem-speicfic protocols (like `rnetlink`) to the user. 
 
 ```rust
 use std::error::Error;
