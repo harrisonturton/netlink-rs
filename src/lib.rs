@@ -1,8 +1,9 @@
-pub mod messages;
-pub use messages::*;
+mod core;
+pub use crate::core::messages::*;
+pub use crate::core::socket::*;
 
-pub mod socket;
-pub use socket::*;
+#[cfg(feature = "route")]
+pub mod route;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
