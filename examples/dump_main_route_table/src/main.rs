@@ -23,23 +23,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[repr(C)]
-#[derive(PartialEq, Clone, Debug, Default, Serialize, Deserialize)]
-pub struct RouteMessage {
-    pub rtm_family: u8,
-    pub rtm_dst_len: u8,
-    pub rtm_src_len: u8,
-    pub rtm_tos: u8,
-    pub rtm_table: u8,
-    pub rtm_protocol: u8,
-    pub rtm_scope: u8,
-    pub rtm_type: u8,
-    pub rtm_flags: u8,
-}
-
 pub fn dump_routes_req() -> Message<Vec<u8>> {
-    let payload = RouteMessage {
-        rtm_family: 2, // AF_INIT
+    let payload = netlink::route::Header {
+        family: 2, // AF_INIT
         ..Default::default()
     };
     Message::builder()
