@@ -1,6 +1,5 @@
 mod core;
-pub use crate::core::messages::*;
-pub use crate::core::socket::*;
+pub use crate::core::*;
 
 #[cfg(feature = "route")]
 pub mod route;
@@ -13,6 +12,10 @@ pub enum Error {
     ErrBindSocket(nix::errno::Errno),
     #[error("failed to send to socket with errno {0}")]
     ErrSendSocket(nix::errno::Errno),
+    #[error("failed to write to socket with error {0}")]
+    ErrWriteSocket(std::io::Error),
+    #[error("failed to read from socket with error {0}")]
+    ErrReadSocket(std::io::Error),
     #[error("failed to recv from socket with errno {0}")]
     ErrRecvSocket(nix::errno::Errno),
     #[error("socket gather vector had no segments")]

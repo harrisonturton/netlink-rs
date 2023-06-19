@@ -1,29 +1,39 @@
+use netlink::flags::{DUMP, REQUEST};
+use netlink::route::{RouteHeader, RouteMessage};
+use netlink::{NetlinkMessage, NetlinkSocket};
 use std::error::Error;
-use netlink::{route, flags, Message};
 
-pub const AF_INET: u8 = 0x2;
+// Netlink message type for fetching route data
 pub const RTM_GETROUTE: u16 = 0x1A;
 
+// Socket family type used by rnetlink
+pub const AF_INET: u8 = 0x2;
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let dump_routes_req = Message::builder()
-        .payload(&route::Header {
-            family: AF_INET,
-            ..Default::default()
-        })
-        .typ(RTM_GETROUTE)
-        .flags(flags::REQUEST | flags::DUMP)
+    // Build netlink route payload
+    let rthdr = RouteHeader::builder()
+        .family(AF_INET)
+        .build();
+
+    let rtmsg = RouteMessage::builder()
+        .header(rthdr)
+        .attrs(vec![])
         .build()?;
 
-    let sock = netlink::connect()?;
-    sock.send(&dump_routes_req)?;
+    // Wrap in netlink message
+    let nlmsg = NetlinkMessage::builder()
+        .payload(&rtmsg)
+        .typ(RTM_GETROUTE)
+        .flags(REQUEST | DUMP)
+        .build()?;
 
-    let mut reader = sock.recv()?;
-    while let Ok(msg) = reader.try_next() {
-        println!("{msg:?}");
+    // Send request
+    let mut sock = NetlinkSocket::connect()?;
+    sock.send(nlmsg)?;
 
-        if msg.header.typ == netlink::MessageType::Done as u16 {
-            break;
-        }
+    // Read multipart response
+    for message in sock.recv()?.messages() {
+        println!("{message:?}");
     }
 
     Ok(())
