@@ -2,46 +2,61 @@
 
 A library for interacting
 [Netlink-based](https://man7.org/linux/man-pages/man7/netlink.7.html) Linux
-kernel interfaces from Rust.
+kernel interfaces from Rust. This abstracts over the core protocol.  It should
+be viewed as an implementation of the Netlink "transport" layer, rather than an
+abstraction over the subsystem-specific protocols.
 
-This only implements the core Netlink protocol. It could be described as
-implementing the transport layer of higher-level interfaces like
-[`rnetlink`](https://man7.org/linux/man-pages/man7/rtnetlink.7.html).
+The [`NETLINK_ROUTE`](https://man7.org/linux/man-pages/man7/rtnetlink.7.html)
+family is current in development. It is partially supported, and used in the
+example below.
 
 ## Usage
 
-The following snippet will dump the kernel's main routing table. Note that the
-`rnetlink` header must be wrapped in a`Message`. This demonstrates that the
-library hides the transport-level details of the netlink protocol, but leaves
-implementing subsystem-speicfic protocols (like `rnetlink`) to the user. 
+The following snippet will dump the kernel's main routing table. This
+demonstrates how a subsystem-specific message, `RouteMessage`, must be wrapped
+in the `NetlinkMessage` to send to the kernel.
+
+Note how the specifics of the Netlink socket protocol are hidden. You only need
+to implement the payload types from each subsystem-specific protocol in order to
+call netlink interfaces.
 
 ```rust
+use netlink::flags::{DUMP, REQUEST};
+use netlink::route::{RouteHeader, RouteMessage};
+use netlink::{NetlinkMessage, NetlinkSocket};
 use std::error::Error;
-use netlink::{route, flags, Message};
 
-pub const AF_INET: u8 = 0x2;
+// Netlink message type for fetching route data
 pub const RTM_GETROUTE: u16 = 0x1A;
 
+// Socket family type used by rnetlink
+pub const AF_INET: u8 = 0x2;
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let dump_routes_req = Message::builder()
-        .payload(&route::Header {
-            family: AF_INET,
-            ..Default::default()
-        })
-        .typ(RTM_GETROUTE)
-        .flags(flags::REQUEST | flags::DUMP)
+    // Build netlink route payload
+    let rthdr = RouteHeader::builder()
+        .family(AF_INET)
+        .build();
+
+    let rtmsg = RouteMessage::builder()
+        .header(rthdr)
+        .attrs(vec![])
         .build()?;
 
-    let sock = netlink::connect()?;
-    sock.send(&dump_routes_req)?;
+    // Wrap in netlink message
+    let nlmsg = NetlinkMessage::builder()
+        .payload(&rtmsg)
+        .typ(RTM_GETROUTE)
+        .flags(REQUEST | DUMP)
+        .build()?;
 
-    let mut reader = sock.recv()?;
-    while let Ok(msg) = reader.try_next() {
-        println!("{msg:?}");
+    // Send request
+    let mut sock = NetlinkSocket::connect()?;
+    sock.send(nlmsg)?;
 
-        if msg.header.typ == netlink::MessageType::Done as u16 {
-            break;
-        }
+    // Read multipart response
+    for message in sock.recv()?.messages() {
+        println!("{message:?}");
     }
 
     Ok(())
