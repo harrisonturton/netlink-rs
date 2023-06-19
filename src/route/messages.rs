@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::{Error, Result};
 
-
 #[repr(C)]
 #[derive(PartialEq, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RouteMessage {

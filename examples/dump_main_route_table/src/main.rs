@@ -1,6 +1,5 @@
-use netlink::flags::{DUMP, REQUEST};
 use netlink::route::{self, RouteHeader, RouteMessage};
-use netlink::{NetlinkMessage, NetlinkSocket};
+use netlink::{NetlinkMessage, NetlinkSocket, DUMP, REQUEST};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {

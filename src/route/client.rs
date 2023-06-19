@@ -1,31 +1,25 @@
-use super::flags::GET_ROUTE;
-use super::{RouteHeader, MessageType};
-use crate::flags::{DUMP, REQUEST};
-use crate::{NetlinkMessage, Result};
+use crate::{NetlinkSocket, Result, NetlinkMessage, REQUEST, DUMP, NetlinkMessageStream};
+use super::{RouteHeader, RouteMessage};
 
-// impl Conn {
-//     pub fn get_route(&mut self) -> Result<Message<Vec<u8>>> {
-//         let req = Message::builder()
-//             .payload(&Header {
-//                 family: MessageType::GETROUTE as u8,
-//                 ..Default::default()
-//             })
-//             .typ(GET_ROUTE as u16)
-//             .flags(REQUEST | DUMP)
-//             .build()?;
 
-//         self.send(&req)?;
+impl NetlinkSocket {
+    pub fn dump_route_table(&mut self) -> Result<NetlinkMessageStream> {
+        let rthdr = RouteHeader::builder()
+            .family(super::AF_INET)
+            .build();
 
-//         let mut reader = self.recv()?;
-//         let mut messages = vec![];
-//         loop {
-//             let msg = reader.try_next()?;
-//             if msg.has_type(crate::MessageType::Done) {
-//                 break;
-//             }
-//             messages.push(msg);
-//         }
+        let rtmsg = RouteMessage::builder()
+            .header(rthdr)
+            .attrs(vec![])
+            .build()?;
 
-//         todo!()
-//     }
-// }
+        let nlmsg = NetlinkMessage::builder()
+            .payload(&rtmsg)
+            .typ(super::GET_ROUTE)
+            .flags(REQUEST | DUMP)
+            .build()?;
+
+        self.send(nlmsg)?;
+        self.recv()
+    }
+}

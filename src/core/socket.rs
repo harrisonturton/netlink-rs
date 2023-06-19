@@ -1,8 +1,6 @@
-use crate::flags::{MULTI, REQUEST};
-use crate::{aligned_size_of, Error, NetlinkHeader, NetlinkMessage, Result, MessageType};
+use crate::{MULTI, aligned_size_of, Error, NetlinkHeader, NetlinkMessage, Result, MessageType};
 use bincode::deserialize;
 use nix::errno::Errno;
-use nix::libc::{NLM_F_MATCH, NLM_F_MULTI};
 use nix::sys::socket::{
     bind, recvmsg, send, socket, AddressFamily, MsgFlags, NetlinkAddr, SockFlag, SockProtocol,
     SockType, RecvMsg,

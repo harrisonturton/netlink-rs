@@ -1,6 +1,3 @@
-use nix::libc::{RTM_GETADDR, RTM_GETROUTE};
-use serde::{Serialize, Deserialize};
-
 pub const AF_INET: u8 = 0x2;
 
 pub const NEW_LINK: u16 = 16;
