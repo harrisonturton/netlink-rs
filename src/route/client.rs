@@ -1,7 +1,6 @@
 use crate::{NetlinkSocket, Result, NetlinkMessage, REQUEST, DUMP, NetlinkMessageStream};
 use super::{RouteHeader, RouteMessage};
 
-
 impl NetlinkSocket {
     pub fn dump_route_table(&mut self) -> Result<NetlinkMessageStream> {
         let rthdr = RouteHeader::builder()

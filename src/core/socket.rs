@@ -44,33 +44,11 @@ impl NetlinkSocket {
     }
 
     pub fn recv(&mut self) -> Result<NetlinkMessageStream> {
-        let bytes = self.recv_bytes_until_block()?;
+        let bytes = self.recv_until_block()?;
         Ok(NetlinkMessageStream::from_bytes(bytes))
     }
 
-    pub fn recv_all_bytes(&mut self) -> Result<Vec<u8>> {
-        let mut bytes = vec![];
-
-        loop {
-            let mut buf = vec![0u8; 1024];
-            match self.read(&mut buf) {
-                Ok(count) => {
-                    let used = &buf[..count];
-                    bytes.extend_from_slice(&used);
-                }
-                Err(err) => match err.kind() {
-                    ErrorKind::WouldBlock => break,
-                    _ => return Err(Error::ErrReadSocket(err)),
-                },
-            };
-        }
-
-        Ok(bytes)
-    }
-
-    // Old
-
-    fn recv_bytes_until_block(&self) -> Result<Vec<u8>> {
+    fn recv_until_block(&self) -> Result<Vec<u8>> {
         let mut bytes = vec![];
 
         loop {
@@ -109,18 +87,6 @@ impl std::io::Write for NetlinkSocket {
         // Data is sent immediately when write() is called; flushing is not
         // needed. Noop implementation because std::io::Write requires it.
         Ok(())
-    }
-}
-
-impl std::io::Read for NetlinkSocket {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let iov_a = IoSliceMut::new(buf);
-        let iovs = &mut [iov_a];
-
-        let recv = recvmsg::<NetlinkAddr>(self.fd, iovs, None, MsgFlags::empty())
-            .map_err(|errno| std::io::Error::from_raw_os_error(errno as i32))?;
-
-        Ok(recv.bytes)
     }
 }
 
