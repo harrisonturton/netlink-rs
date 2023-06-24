@@ -1,14 +1,46 @@
-pub const AF_INET: u8 = 0x2;
+use serde::{Deserialize, Serialize};
 
-pub const NEW_LINK: u16 = 16;
-pub const DEL_LINK: u16 = 17;
-pub const GET_LINK: u16 = 18;
-pub const SET_LINK: u16 = 19;
+pub const AF_INET: u8 = 2;
 
-pub const NEW_ADDR: u16 = 20;
-pub const DEL_ADDR: u16 = 21;
-pub const GET_ADDR: u16 = 22;
+#[repr(u16)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
+pub enum RouteAttrType {
+    IfaUnspec = 0,
+    IfaAddress = 1,
+    IfaLocal = 2,
+    IfaLabel = 3,
+    IfaBroadcast = 4,
+    IfaAnycast = 5,
+    IfaCacheinfo = 6,
+    IfaMulticast = 7,
+}
 
-pub const NEW_ROUTE: u16 = 24;
-pub const DEL_ROUTE: u16 = 25;
-pub const GET_ROUTE: u16 = 26;
+impl From<RouteAttrType> for u16 {
+    fn from(value: RouteAttrType) -> Self {
+        value as u16
+    }
+}
+
+#[repr(u16)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
+pub enum RouteMessageType {
+    // Link
+    NewLink = 16,
+    DelLink = 17,
+    GetLink = 18,
+    SetLink = 19,
+    // Addr
+    NewAddr = 20,
+    DelAddr = 21,
+    GetAddr = 22,
+    // Route
+    NewRoute = 24,
+    DelRoute = 25,
+    GetRoute = 26,
+}
+
+impl From<RouteMessageType> for u16 {
+    fn from(value: RouteMessageType) -> Self {
+        value as u16
+    }
+}

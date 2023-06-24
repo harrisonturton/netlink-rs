@@ -1,32 +1,24 @@
-use netlink::route::{self, RouteHeader, RouteMessage};
-use netlink::{NetlinkMessage, NetlinkSocket, DUMP, REQUEST};
 use std::error::Error;
+use netlink::route::{RouteHeader, RouteMessageType, AF_INET};
+use netlink::{NetlinkStream, Flag, NetlinkMessage};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // Build netlink route payload
+    let mut conn = NetlinkStream::connect()?;
+
     let rthdr = RouteHeader::builder()
-        .family(route::AF_INET)
+        .family(AF_INET)
         .build();
 
-    let rtmsg = RouteMessage::builder()
-        .header(rthdr)
-        .attrs(vec![])
-        .build()?;
+    let msg = NetlinkMessage::builder()
+        .typ(RouteMessageType::GetRoute)
+        .flags(Flag::Request | Flag::Dump)
+        .append(rthdr)?
+        .build();
 
-    // Wrap in netlink message
-    let nlmsg = NetlinkMessage::builder()
-        .payload(&rtmsg)
-        .typ(route::GET_ROUTE)
-        .flags(REQUEST | DUMP)
-        .build()?;
+    conn.send(msg)?;
 
-    // Send request
-    let mut sock = NetlinkSocket::connect()?;
-    sock.send(nlmsg)?;
-
-    // Read multipart response
-    for message in sock.recv()?.messages() {
-        println!("{message:?}");
+    for msg in conn.into_iter(){
+        println!("{msg:?}");
     }
 
     Ok(())

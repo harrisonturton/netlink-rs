@@ -4,6 +4,10 @@ pub use crate::core::*;
 #[cfg(feature = "route")]
 pub mod route;
 
+pub type Result<T> = std::result::Result<T, Error>;
+
+/// Everything that might go wrong when trying to pack Netlink packets and send
+/// them to the kernel.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("failed to create socket with errno {0}")]
@@ -18,6 +22,8 @@ pub enum Error {
     ErrReadSocket(std::io::Error),
     #[error("failed to recv from socket with errno {0}")]
     ErrRecvSocket(nix::errno::Errno),
+    #[error("failed to if_nametoindex with errno {0}")]
+    ErrNameToIndex(nix::errno::Errno),
     #[error("socket gather vector had no segments")]
     ErrRecvSocketNoBuf,
     #[error("expected more bytes but there were not enough")]
@@ -29,5 +35,3 @@ pub enum Error {
     #[error("failed due to missing field {0}")]
     ErrMissingField(String),
 }
-
-pub type Result<T> = std::result::Result<T, Error>;
