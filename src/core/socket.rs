@@ -66,6 +66,39 @@ impl std::io::Write for NetlinkSocket {
     }
 }
 
+/// This is the primary way to interact with a Netlink interface. It provides
+/// methods to read and write messages, and buffers all the underlying byte
+/// reads.
+/// 
+/// For example:
+/// 
+/// ```rust
+/// use std::error::Error;
+/// use netlink::route::{RouteHeader, RouteMessageType, AF_INET};
+/// use netlink::{NetlinkStream, Flag, NetlinkMessage};
+///
+/// fn main() -> Result<(), Box<dyn Error>> {
+///     let mut conn = NetlinkStream::connect()?;
+///
+///     let rthdr = RouteHeader::builder()
+///         .family(AF_INET)
+///         .build();
+///
+///     let msg = NetlinkMessage::builder()
+///         .typ(RouteMessageType::GetRoute)
+///         .flags(Flag::Request | Flag::Dump)
+///         .append(rthdr)?
+///         .build();
+///
+///     conn.send(msg)?;
+///
+///     for msg in conn.into_iter(){
+///         println!("{msg:?}");
+///     }
+/// 
+///     Ok(())
+/// }
+/// ```
 pub struct NetlinkStream {
     sock: NetlinkSocket,
     reader: BufReader<NetlinkSocket>,
@@ -128,8 +161,6 @@ impl NetlinkStream {
         let buf = &mut [0u8; aligned_size_of::<NetlinkHeader>()];
         self.reader.read(buf).map_err(Error::ErrReadSocket)?;
         let hdr = deserialize::<NetlinkHeader>(buf).map_err(Error::ErrDeserialize)?;
-
-        println!("Got header: {hdr:?}");
 
         if hdr.has_flags(Flag::Multi) {
             self.has_remaining_reads = true;
