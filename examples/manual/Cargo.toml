@@ -1,0 +1,9 @@
+[package]
+name = "manual"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+netlink = { path = "../../" }
+log = "0.4.19"
+logger = { git = "https://github.com/harrisonturton/logger.git" }
