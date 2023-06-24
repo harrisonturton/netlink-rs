@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-netlink = { path = "../../" }
+netlink = { path = "../../", features = ["all"]}
 bincode = "1.3.3"
 serde = { version = "1.0.164", features = ["derive"] }
