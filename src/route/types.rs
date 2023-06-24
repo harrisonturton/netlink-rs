@@ -61,6 +61,7 @@ pub struct InterfaceInfoMessage {
 }
 
 impl InterfaceInfoMessage {
+    #[must_use]
     pub fn builder() -> InterfaceInfoMessageBuilder {
         InterfaceInfoMessageBuilder::default()
     }
@@ -91,6 +92,7 @@ pub struct InterfaceAddrMessage {
 }
 
 impl InterfaceAddrMessage {
+    #[must_use]
     pub fn builder() -> InterfaceAddrMessageBuilder {
         InterfaceAddrMessageBuilder::default()
     }
@@ -116,6 +118,7 @@ pub struct RouteMessage {
 }
 
 impl RouteMessage {
+    #[must_use]
     pub fn builder() -> RouteMessageBuilder {
         RouteMessageBuilder::default()
     }
@@ -234,7 +237,7 @@ pub struct LinkStats {
 
 #[rustfmt::skip]
 impl RouteAttrValue {
-    pub fn from(typ: RouteAttrType, payload: &[u8]) -> Result<Self> {
+    pub(crate) fn from(typ: RouteAttrType, payload: &[u8]) -> Result<Self> {
         match typ {
             RouteAttrType::Unspec => {
                 Ok(Self::Unspec)
@@ -264,22 +267,22 @@ impl RouteAttrValue {
                 deserialize_i32(payload).map(Self::Metrics)
             }
             RouteAttrType::Multipath => {
-                deserialize_vec(payload).map(Self::Multipath)
+                Ok(Self::Multipath(payload.to_vec()))
             }
             RouteAttrType::ProtoInfo => {
-                deserialize_vec(payload).map(Self::ProtoInfo)
+                Ok(Self::ProtoInfo(payload.to_vec()))
             }
             RouteAttrType::Flow => {
                 deserialize_i32(payload).map(Self::Flow)
             }
             RouteAttrType::CacheInfo => {
-                deserialize_vec(payload).map(Self::CacheInfo)
+                Ok(Self::CacheInfo(payload.to_vec()))
             }
             RouteAttrType::Session => {
-                deserialize_vec(payload).map(Self::Session)
+                Ok(Self::Session(payload.to_vec()))
             }
             RouteAttrType::MpAlgo => {
-                deserialize_vec(payload).map(Self::MpAlgo)
+                Ok(Self::MpAlgo(payload.to_vec()))
             }
             RouteAttrType::Table => {
                 deserialize_i32(payload).map(Self::Table)
@@ -288,10 +291,10 @@ impl RouteAttrValue {
                 deserialize_i32(payload).map(Self::Mark)
             }
             RouteAttrType::MfcStats => {
-                deserialize_vec(payload).map(Self::MfcStats)
+                Ok(Self::MfcStats(payload.to_vec()))
             }
             RouteAttrType::Via => {
-                deserialize_vec(payload).map(Self::Via)
+                Ok(Self::Via(payload.to_vec()))
             }
             RouteAttrType::NewDest => {
                 deserialize_quad(payload).map(Self::NewDest)
@@ -303,7 +306,7 @@ impl RouteAttrValue {
                 deserialize_i16(payload).map(Self::EncapType)
             }
             RouteAttrType::Encap => {
-                deserialize_vec(payload).map(Self::Encap)
+                Ok(Self::Encap(payload.to_vec()))
             }
             RouteAttrType::Expires => {
                 deserialize_i32(payload).map(Self::Expires)
@@ -313,27 +316,23 @@ impl RouteAttrValue {
 }
 
 fn deserialize_i8(payload: &[u8]) -> Result<i8> {
-    let bytes: [u8; 1] = payload.try_into().unwrap();
+    let bytes: [u8; 1] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
     Ok(i8::from_le_bytes(bytes))
 }
 
 fn deserialize_i16(payload: &[u8]) -> Result<i16> {
-    let bytes: [u8; 2] = payload.try_into().unwrap();
+    let bytes: [u8; 2] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
     Ok(i16::from_le_bytes(bytes))
 }
 
 fn deserialize_i32(payload: &[u8]) -> Result<i32> {
-    let bytes: [u8; 4] = payload.try_into().unwrap();
+    let bytes: [u8; 4] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
     Ok(i32::from_le_bytes(bytes))
 }
 
 fn deserialize_quad(payload: &[u8]) -> Result<[u8; 4]> {
-    let bytes: [u8; 4] = payload.try_into().unwrap();
+    let bytes: [u8; 4] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
     Ok(bytes)
-}
-
-fn deserialize_vec(payload: &[u8]) -> Result<Vec<u8>> {
-    Ok(payload.to_vec())
 }
 
 fn deserialize_ip_addr(payload: &[u8]) -> Result<IpAddr> {

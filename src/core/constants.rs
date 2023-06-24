@@ -2,7 +2,7 @@
 pub const REQUEST: u16 = 0x1;
 
 /// This message is part of a multipart message terminated by a message with
-/// type [MessageType::Done]
+/// type [`MessageType::Done`]
 pub const MULTI: u16 = 0x2;
 
 /// Acknowledgement of success
@@ -19,13 +19,13 @@ pub const MATCH: u16 = 0x200;
 pub const ATOMIC: u16 = 0x400;
 
 /// Return all entries. Convenience macro, equivalent to
-/// [MessageFlags::Root] OR [MessageFlags::Match].
+/// [`MessageFlags::Root`] OR [`MessageFlags::Match`].
 pub const DUMP: u16 = ROOT | MATCH;
 
 /// Replace an existing object
 pub const REPLACE: u16 = 0x100;
 
-/// Don't replace if the object already exists (see [MessageFlags::Replace])
+/// Don't replace if the object already exists (see [`MessageFlags::Replace`])
 pub const EXCL: u16 = 0x200;
 
 /// Create object if it doesn't already exist

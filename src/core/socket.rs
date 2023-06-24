@@ -32,7 +32,7 @@ impl NetlinkSocket {
         )
         .map_err(Error::ErrCreateSocket)?;
 
-        let pid = getpid().as_raw() as u32;
+        let pid: u32 = getpid().as_raw().try_into().map_err(|_| Error::ErrValueConversion)?;
         let sock_addr = NetlinkAddr::new(pid, 0);
 
         // Binding is not required. However, it provides metadata to strace that
@@ -54,8 +54,7 @@ impl std::io::Read for NetlinkSocket {
 
 impl std::io::Write for NetlinkSocket {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        send(self.fd, &buf, MsgFlags::empty())
-            .map(|sent| sent as usize)
+        send(self.fd, buf, MsgFlags::empty())
             .map_err(|errno| std::io::Error::from_raw_os_error(errno as i32))
     }
 
@@ -108,6 +107,12 @@ pub struct NetlinkStream {
 }
 
 impl NetlinkStream {
+    /// Returns a bidirectional stream of Netlink messages.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an [`crate::Error`] when a Netlink socket cannot be successfully
+    /// created. This might happen for a variety of reasons.
     pub fn connect() -> Result<Self> {
         let sock = NetlinkSocket::connect()?;
         let writer = BufWriter::new(sock.clone());
@@ -122,10 +127,15 @@ impl NetlinkStream {
     }
 
     /// Attempt to send a Netlink message.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an [`crate::Error`] when writes to socket's underlying file
+    /// descriptor fails.
     pub fn send(&mut self, mut msg: NetlinkMessage) -> Result<()> {
         let len = msg.payload.len() + aligned_size_of::<NetlinkHeader>();
         let header = NetlinkHeader {
-            len: len as u32,
+            len: len.try_into().map_err(|_| Error::ErrValueConversion)?,
             typ: msg.header.typ,
             flags: msg.header.flags,
             pid: self.sock.pid,
@@ -153,6 +163,11 @@ impl NetlinkStream {
     ///
     /// This will be reset when another message is sent, so the same
     /// [`NetlinkStream`] can be used.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an [`crate::Error`] on failure to read from the underlying
+    /// socket file descriptor.
     pub fn recv(&mut self) -> Result<Option<NetlinkMessage>> {
         if !self.has_remaining_reads {
             return Ok(None);
@@ -172,7 +187,7 @@ impl NetlinkStream {
         }
 
         let payload_len = hdr.len as usize - aligned_size_of::<NetlinkHeader>();
-        let mut payload = vec![0u8; payload_len as usize];
+        let mut payload = vec![0u8; payload_len];
         self.reader
             .read(&mut payload)
             .map_err(Error::ErrReadSocket)?;

@@ -1,3 +1,7 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::match_same_arms)]
+
 pub mod core;
 pub use crate::core::*;
 
@@ -41,6 +45,8 @@ pub enum Error {
     ErrCastEnum(u16),
     #[error("failed to deserialize route attribute {0:?}")]
     ErrDeserializeRouteAttr(crate::route::RouteAttrType),
+    #[error("failued to convert value")]
+    ErrValueConversion,
 }
 
 impl From<derive_builder::UninitializedFieldError> for Error {

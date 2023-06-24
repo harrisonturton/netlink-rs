@@ -25,7 +25,7 @@ impl<'a> SliceReader<'a> {
     pub(crate) fn read<T: DeserializeOwned>(&mut self) -> Result<T> {
         let len = aligned_size_of::<T>();
         let bytes = self.take(len)?;
-        let val = deserialize(&bytes).map_err(Error::ErrDeserialize)?;
+        let val = deserialize(bytes).map_err(Error::ErrDeserialize)?;
         Ok(val)
     }
 

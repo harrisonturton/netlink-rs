@@ -100,7 +100,7 @@ pub(crate) struct NetlinkHeader {
 }
 
 impl NetlinkHeader {
-    pub(crate) fn into_descriptor(&self) -> NetlinkHeaderDescriptor {
+    pub(crate) fn into_descriptor(self) -> NetlinkHeaderDescriptor {
         NetlinkHeaderDescriptor {
             typ: self.typ,
             flags: self.flags,
@@ -141,6 +141,7 @@ impl NetlinkMessage {
 
     /// Build a [`NetlinkMessage`] using the safe builder. This will make sure
     /// the length and payloads are aligned to the proper byte offsets.
+    #[must_use]
     pub fn builder() -> NetlinkMessageBuilder {
         NetlinkMessageBuilder::new()
     }
@@ -158,12 +159,14 @@ pub struct NetlinkMessageBuilder {
 }
 
 impl NetlinkMessageBuilder {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// See `nlmsg_type` in the [netlink(7)
     /// manpage](https://man7.org/linux/man-pages/man7/netlink.7.html).
+    #[must_use]
     pub fn typ<I: Into<u16>>(mut self, typ: I) -> Self {
         self.typ = typ.into();
         self
@@ -171,13 +174,18 @@ impl NetlinkMessageBuilder {
 
     /// See `nlmsg_flags` in the [netlink(7)
     /// manpage](https://man7.org/linux/man-pages/man7/netlink.7.html).
+    #[must_use]
     pub fn flags(mut self, flags: u16) -> Self {
-        self.flags = flags.into();
+        self.flags = flags;
         self
     }
 
     /// Append a type to the message payload. This will serialize `T` into a
     /// `Vec<u8>>` padded to a 4 byte alignment.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an [`crate::Error`] when `payload` cannot be serialized.
     pub fn append<T: Serialize>(mut self, payload: T) -> Result<Self> {
         let mut bytes = serialize_aligned(payload)?;
         self.payload.append(&mut bytes);
@@ -185,6 +193,7 @@ impl NetlinkMessageBuilder {
     }
 
     /// Consume the builder and  get the [`NetlinkMessage`].
+    #[must_use]
     pub fn build(self) -> NetlinkMessage {
         NetlinkMessage {
             header: NetlinkHeaderDescriptor {

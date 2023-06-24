@@ -1,4 +1,3 @@
-use std::net::IpAddr;
 use crate::aligned_size;
 use crate::aligned_size_of;
 use crate::reader::SliceReader;
@@ -10,6 +9,7 @@ use crate::Flag;
 use crate::NetlinkMessage;
 use crate::NetlinkStream;
 use crate::Result;
+use std::net::IpAddr;
 
 use super::RouteAttrValue;
 
@@ -27,6 +27,11 @@ pub struct Route {
 }
 
 impl NetlinkStream {
+    /// List the route table.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`crate::Error`] on failure.
     pub fn list_routes(&mut self) -> Result<Vec<Route>> {
         let rthdr = RouteMessage::builder().family(AF_INET).build()?;
 
@@ -41,7 +46,7 @@ impl NetlinkStream {
         let mut routes = vec![];
         while let Ok(Some(msg)) = self.recv() {
             let (rtmsg, rattrs) = read_rtmsg(&msg)?;
-            let route = build_route(&rtmsg, &rattrs)?;
+            let route = build_route(&rtmsg, &rattrs);
             routes.push(route);
         }
 
@@ -59,7 +64,7 @@ fn read_rtmsg(msg: &NetlinkMessage) -> Result<(RouteMessage, Vec<RouteAttrValue>
         let hdr = reader.read::<RouteAttrHeader>()?;
 
         let value_len = aligned_size(hdr.len as usize) - aligned_size_of::<RouteAttrHeader>();
-        let value_bytes = reader.take(value_len as usize)?;
+        let value_bytes = reader.take(value_len)?;
         let value = RouteAttrValue::from(hdr.typ, value_bytes)?;
 
         attributes.push(value);
@@ -68,7 +73,7 @@ fn read_rtmsg(msg: &NetlinkMessage) -> Result<(RouteMessage, Vec<RouteAttrValue>
     Ok((rtmsg, attributes))
 }
 
-fn build_route(msg: &RouteMessage, attrs: &[RouteAttrValue]) -> Result<Route> {
+fn build_route(msg: &RouteMessage, attrs: &[RouteAttrValue]) -> Route {
     let mut route = Route {
         table: msg.table,
         protocol: msg.protocol,
@@ -102,5 +107,5 @@ fn build_route(msg: &RouteMessage, attrs: &[RouteAttrValue]) -> Result<Route> {
         }
     }
 
-    Ok(route)
+    route
 }
