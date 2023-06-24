@@ -195,7 +195,7 @@ pub enum RouteAttrValue {
     MfcStats(Vec<u8>),
     // rt_via
     Via(Vec<u8>),
-    NewDest([u8; 4]),
+    NewDest(IpAddr),
     Pref(i8),
     EncapType(i16),
     Encap(Vec<u8>),
@@ -297,7 +297,7 @@ impl RouteAttrValue {
                 Ok(Self::Via(payload.to_vec()))
             }
             RouteAttrType::NewDest => {
-                deserialize_quad(payload).map(Self::NewDest)
+                deserialize_ip_addr(payload).map(Self::NewDest)
             }
             RouteAttrType::Pref => {
                 deserialize_i8(payload).map(Self::Pref)
@@ -328,11 +328,6 @@ fn deserialize_i16(payload: &[u8]) -> Result<i16> {
 fn deserialize_i32(payload: &[u8]) -> Result<i32> {
     let bytes: [u8; 4] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
     Ok(i32::from_le_bytes(bytes))
-}
-
-fn deserialize_quad(payload: &[u8]) -> Result<[u8; 4]> {
-    let bytes: [u8; 4] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
-    Ok(bytes)
 }
 
 fn deserialize_ip_addr(payload: &[u8]) -> Result<IpAddr> {
