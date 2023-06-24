@@ -6,7 +6,7 @@ use nix::sys::socket::{
     SockType,
 };
 use nix::unistd::getpid;
-use std::io::{Read, Write, BufWriter, BufReader};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::os::fd::RawFd;
 
 /// Wraps a socket [`RawFd`] descriptor to provide safe read and write methods
@@ -69,9 +69,9 @@ impl std::io::Write for NetlinkSocket {
 /// This is the primary way to interact with a Netlink interface. It provides
 /// methods to read and write messages, and buffers all the underlying byte
 /// reads.
-/// 
+///
 /// For example:
-/// 
+///
 /// ```rust
 /// use std::error::Error;
 /// use netlink::route::{RouteHeader, RouteMessageType, AF_INET};
@@ -95,7 +95,7 @@ impl std::io::Write for NetlinkSocket {
 ///     for msg in conn.into_iter(){
 ///         println!("{msg:?}");
 ///     }
-/// 
+///
 ///     Ok(())
 /// }
 /// ```
@@ -168,6 +168,7 @@ impl NetlinkStream {
 
         if hdr.has_type(MessageType::Done) {
             self.has_remaining_reads = false;
+            return Ok(None);
         }
 
         let payload_len = hdr.len as usize - aligned_size_of::<NetlinkHeader>();

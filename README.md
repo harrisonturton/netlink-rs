@@ -12,31 +12,15 @@ example below.
 
 ## Installation
 
-#### With all features
-
 Add the following line to your `Cargo.toml`:
-
-```rust
-netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git", features = ["all"]}
-```
-
-#### Core Netlink only
-
-This will install only the `core` subpackage:
 
 ```rust
 netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git" }
 ```
 
-#### Netlink route only
-
-This will install only the `route` subpackage:
-
-```rust
-netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git", features = ["route"] }
-```
-
 ## Usage
+
+### Using the wrappers
 
 The following snippet will dump the kernel's main routing table. This
 demonstrates how a subsystem-specific message, `RouteMessage`, must be wrapped
@@ -45,6 +29,23 @@ in the `NetlinkMessage` to send to the kernel.
 Note how the specifics of the Netlink socket protocol are hidden. You only need
 to implement the payload types from each subsystem-specific protocol in order to
 call netlink interfaces.
+
+```rust
+use netlink::NetlinkStream;
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut conn = NetlinkStream::connect()?;
+
+    for route in conn.list_routes()? {
+        println!("{route:?}");
+    }
+
+    Ok(())
+}
+```
+
+### Using Netlink directly
 
 ```rust
 use std::error::Error;
@@ -66,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     conn.send(msg)?;
 
-    for msg in conn.into_iter(){
+    while let Ok(Some(msg)) = conn.recv() {
         println!("{msg:?}");
     }
 

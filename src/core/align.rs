@@ -7,12 +7,6 @@ use std::mem::{size_of, size_of_val};
 // implements [`serde::Serialize`].
 pub fn serialize_aligned<T: Serialize>(val: T) -> Result<Vec<u8>> {
     let mut bytes = bincode::serialize(&val).map_err(Error::ErrSerialize)?;
-
-    println!(
-        "serialize_aligned: aligned={} unaligned={}",
-        aligned_size_of::<T>(),
-        bytes.len()
-    );
     let padding_len = aligned_size_of::<T>() - bytes.len();
     let mut padding = vec![0u8; padding_len];
 
@@ -22,6 +16,10 @@ pub fn serialize_aligned<T: Serialize>(val: T) -> Result<Vec<u8>> {
 
 // Netlink pads messages to 4 bytes
 const ALIGN_TO: usize = 4;
+
+pub const fn aligned_size(val: usize) -> usize {
+    (val + ALIGN_TO - 1) & !(ALIGN_TO - 1)
+}
 
 pub const fn aligned_size_of<T>() -> usize {
     (size_of::<T>() + ALIGN_TO - 1) & !(ALIGN_TO - 1)

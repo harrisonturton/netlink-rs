@@ -130,8 +130,8 @@ impl NetlinkHeader {
 /// fields are set.
 #[derive(PartialEq, Clone, Debug, Default)]
 pub struct NetlinkMessage {
-    pub(crate) header: NetlinkHeaderDescriptor,
-    pub(crate) payload: Vec<u8>,
+    pub header: NetlinkHeaderDescriptor,
+    pub payload: Vec<u8>,
 }
 
 impl NetlinkMessage {

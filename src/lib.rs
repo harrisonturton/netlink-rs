@@ -1,8 +1,9 @@
-mod core;
+pub mod core;
 pub use crate::core::*;
 
-#[cfg(feature = "route")]
 pub mod route;
+
+mod reader;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -34,4 +35,16 @@ pub enum Error {
     ErrDeserialize(bincode::Error),
     #[error("failed due to missing field {0}")]
     ErrMissingField(String),
+    #[error("failed to build with error {0}")]
+    ErrBuild(derive_builder::UninitializedFieldError),
+    #[error("failed to case to enum")]
+    ErrCastEnum(u16),
+    #[error("failed to deserialize route attribute {0:?}")]
+    ErrDeserializeRouteAttr(crate::route::RouteAttrType),
+}
+
+impl From<derive_builder::UninitializedFieldError> for Error {
+    fn from(err: derive_builder::UninitializedFieldError) -> Self {
+        Self::ErrBuild(err)
+    }
 }
