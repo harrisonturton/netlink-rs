@@ -1,3 +1,4 @@
+use super::RouteAttrValue;
 use crate::aligned_size;
 use crate::aligned_size_of;
 use crate::reader::SliceReader;
@@ -10,8 +11,6 @@ use crate::NetlinkMessage;
 use crate::NetlinkStream;
 use crate::Result;
 use std::net::IpAddr;
-
-use super::RouteAttrValue;
 
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Route {

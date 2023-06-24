@@ -182,9 +182,9 @@ impl NetlinkMessageBuilder {
 
     /// Append a type to the message payload. This will serialize `T` into a
     /// `Vec<u8>>` padded to a 4 byte alignment.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an [`crate::Error`] when `payload` cannot be serialized.
     pub fn append<T: Serialize>(mut self, payload: T) -> Result<Self> {
         let mut bytes = serialize_aligned(payload)?;

@@ -32,7 +32,10 @@ impl NetlinkSocket {
         )
         .map_err(Error::ErrCreateSocket)?;
 
-        let pid: u32 = getpid().as_raw().try_into().map_err(|_| Error::ErrValueConversion)?;
+        let pid: u32 = getpid()
+            .as_raw()
+            .try_into()
+            .map_err(|_| Error::ErrValueConversion)?;
         let sock_addr = NetlinkAddr::new(pid, 0);
 
         // Binding is not required. However, it provides metadata to strace that
@@ -108,9 +111,9 @@ pub struct NetlinkStream {
 
 impl NetlinkStream {
     /// Returns a bidirectional stream of Netlink messages.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an [`crate::Error`] when a Netlink socket cannot be successfully
     /// created. This might happen for a variety of reasons.
     pub fn connect() -> Result<Self> {
@@ -127,9 +130,9 @@ impl NetlinkStream {
     }
 
     /// Attempt to send a Netlink message.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an [`crate::Error`] when writes to socket's underlying file
     /// descriptor fails.
     pub fn send(&mut self, mut msg: NetlinkMessage) -> Result<()> {
@@ -163,9 +166,9 @@ impl NetlinkStream {
     ///
     /// This will be reset when another message is sent, so the same
     /// [`NetlinkStream`] can be used.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an [`crate::Error`] on failure to read from the underlying
     /// socket file descriptor.
     pub fn recv(&mut self) -> Result<Option<NetlinkMessage>> {
