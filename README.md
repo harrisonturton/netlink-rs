@@ -12,10 +12,28 @@ example below.
 
 ## Installation
 
+#### With all features
+
 Add the following line to your `Cargo.toml`:
 
 ```rust
+netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git", features = ["all"]}
+```
+
+#### Core Netlink only
+
+This will install only the `core` subpackage:
+
+```rust
 netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git" }
+```
+
+#### Netlink route only
+
+This will install only the `route` subpackage:
+
+```rust
+netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git", features = ["route"] }
 ```
 
 ## Usage
