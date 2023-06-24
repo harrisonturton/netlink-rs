@@ -10,6 +10,14 @@ The [`NETLINK_ROUTE`](https://man7.org/linux/man-pages/man7/rtnetlink.7.html)
 family is current in development. It is partially supported, and used in the
 example below.
 
+## Installation
+
+Add the following line to your `Cargo.toml`:
+
+```rust
+netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git" }
+```
+
 ## Usage
 
 The following snippet will dump the kernel's main routing table. This
