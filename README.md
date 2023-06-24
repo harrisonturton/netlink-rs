@@ -20,15 +20,14 @@ netlink-rs = { git = "https://github.com/harrisonturton/netlink-rs/tree/main.git
 
 ## Usage
 
-### Using the wrappers
+The following examples will all dump the kernel's routing tables, in order of
+highest to lowest abstraction.
 
-The following snippet will dump the kernel's main routing table. This
-demonstrates how a subsystem-specific message, `RouteMessage`, must be wrapped
-in the `NetlinkMessage` to send to the kernel.
+### Convenience methods
 
-Note how the specifics of the Netlink socket protocol are hidden. You only need
-to implement the payload types from each subsystem-specific protocol in order to
-call netlink interfaces.
+This crate has the best support for `rnetlink`. Depending on what information
+you need, it might be exposed by one of these easy-to-use wrapper methods. They
+can be called directly and gather the responses into user-friendly structs.
 
 ```rust
 use netlink::NetlinkStream;
@@ -47,6 +46,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 ### Using Netlink directly
 
+But if this crate doesn't support the protocol or method you need (there's a lot
+of Netlink interfaces!) it has enough escape hatches for you to implement it
+manually.
+
+This example shows how a `NetlinkMessage` can be built and passed to the
+`NetlinkStream`. Once this request message has been sent, one or more (in the
+case of multipart messages) responses can be read.
+
+Note how the specifics of the Netlink socket protocol are hidden. You only need
+to implement the payload types from each subsystem-specific protocol in order to
+call netlink interfaces.
+
 ```rust
 use std::error::Error;
 use netlink::route::{RouteHeader, RouteMessageType, AF_INET};
@@ -55,6 +66,8 @@ use netlink::{NetlinkStream, Flag, NetlinkMessage};
 fn main() -> Result<(), Box<dyn Error>> {
     let mut conn = NetlinkStream::connect()?;
 
+    // This example uses types already declared in the library, but you could
+    // write your own. It just needs to implement `serde::Serialize`.
     let rthdr = RouteHeader::builder()
         .family(AF_INET)
         .build();
@@ -74,3 +87,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 ```
+
+## Contributing
+
+Please do! There are many Netlink interfaces; I don't have time to implement all
+of them. If appreciate it if any extensions are submitted upstream.
