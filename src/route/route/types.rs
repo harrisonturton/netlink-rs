@@ -1,13 +1,9 @@
-use std::{
-    mem::size_of,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-};
-
+use crate::bytes::{deserialize_i16, deserialize_i32, deserialize_i8, deserialize_ip_addr};
 use crate::{Error, Result};
-use bincode::deserialize;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use std::net::IpAddr;
 
 /// Types of route messages.
 #[repr(u16)]
@@ -102,7 +98,7 @@ pub enum RouteAttrType {
     Expires = 23,
 }
 
-/// Strongly-typed [`RouteAttr`]. This is parsed
+/// Strongly-typed [`RouteAttr`].
 #[derive(PartialEq, Clone, Debug)]
 pub enum RouteAttrValue {
     Unspec,
@@ -140,8 +136,7 @@ pub enum RouteAttrValue {
 
 /// Statistics about a link.
 ///
-/// See
-/// [rtnl_link_stats.](https://github.com/torvalds/linux/blob/master/tools/include/uapi/linux/if_link.h)
+/// See [rtnl_link_stats](https://github.com/torvalds/linux/blob/master/tools/include/uapi/linux/if_link.h).
 #[repr(C)]
 #[derive(PartialEq, Clone, Debug, Default, Builder, Serialize, Deserialize)]
 #[builder(default, build_fn(error = "Error"))]
@@ -173,7 +168,7 @@ pub struct LinkStats {
 
 #[rustfmt::skip]
 impl RouteAttrValue {
-    pub(crate) fn from(typ: RouteAttrType, payload: &[u8]) -> Result<Self> {
+    pub(crate) fn deserialize(typ: RouteAttrType, payload: &[u8]) -> Result<Self> {
         match typ {
             RouteAttrType::Unspec => {
                 Ok(Self::Unspec)
@@ -248,32 +243,5 @@ impl RouteAttrValue {
                 deserialize_i32(payload).map(Self::Expires)
             }
         }
-    }
-}
-
-fn deserialize_i8(payload: &[u8]) -> Result<i8> {
-    let bytes: [u8; 1] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
-    Ok(i8::from_le_bytes(bytes))
-}
-
-fn deserialize_i16(payload: &[u8]) -> Result<i16> {
-    let bytes: [u8; 2] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
-    Ok(i16::from_le_bytes(bytes))
-}
-
-fn deserialize_i32(payload: &[u8]) -> Result<i32> {
-    let bytes: [u8; 4] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
-    Ok(i32::from_le_bytes(bytes))
-}
-
-fn deserialize_ip_addr(payload: &[u8]) -> Result<IpAddr> {
-    if payload.len() == size_of::<Ipv6Addr>() {
-        deserialize::<Ipv6Addr>(payload)
-            .map(IpAddr::V6)
-            .map_err(Error::ErrDeserialize)
-    } else {
-        deserialize::<Ipv4Addr>(payload)
-            .map(IpAddr::V4)
-            .map_err(Error::ErrDeserialize)
     }
 }

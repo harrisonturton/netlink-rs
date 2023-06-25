@@ -1,4 +1,3 @@
-
 /// Convenience return type for fallible Netlink methods.
 pub type Result<T> = std::result::Result<T, Error>;
 

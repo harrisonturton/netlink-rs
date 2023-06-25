@@ -1,5 +1,6 @@
+use crate::bytes::{aligned_size_of, serialize_aligned};
 use crate::types::{Flag, MessageType, NetlinkHeader, NetlinkMessage};
-use crate::{aligned_size_of, serialize_aligned, Error, Result};
+use crate::{Error, Result};
 use bincode::deserialize;
 use nix::sys::socket::{
     bind, recv, send, socket, AddressFamily, MsgFlags, NetlinkAddr, SockFlag, SockProtocol,

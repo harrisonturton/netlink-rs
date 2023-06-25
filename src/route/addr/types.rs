@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
-use derive_builder::Builder;
 use crate::Error;
+use derive_builder::Builder;
+use serde::{Deserialize, Serialize};
 
 /// Add, remove, or receive information about an IP address associated with an
 /// interface.

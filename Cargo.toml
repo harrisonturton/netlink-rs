@@ -2,6 +2,11 @@
 name = "netlink"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/harrisonturton/netlink-rs"
+keywords = ["netlink", "linux", "networking"]
+description = "Library for interacting with Linux netlink interfaces"
+categories = ["os", "os::linux-apis", "network-programming"]
 
 [dependencies]
 nix = "0.26.2"

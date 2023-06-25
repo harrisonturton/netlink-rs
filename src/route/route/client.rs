@@ -1,15 +1,7 @@
-use super::RouteAttrValue;
-use crate::aligned_size;
-use crate::aligned_size_of;
-use crate::reader::SliceReader;
-use super::RouteAttrHeader;
-use super::RouteMessage;
-use super::RouteMessageType;
+use super::{RouteAttrHeader, RouteAttrValue, RouteMessage, RouteMessageType};
+use crate::bytes::{aligned_size, aligned_size_of, SliceReader};
 use crate::route::AF_INET;
-use crate::Flag;
-use crate::NetlinkMessage;
-use crate::NetlinkStream;
-use crate::Result;
+use crate::{Flag, NetlinkMessage, NetlinkStream, Result};
 use std::net::IpAddr;
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -29,7 +21,7 @@ impl NetlinkStream {
     /// List the route table.
     ///
     /// # Errors
-    /// 
+    ///
     /// Returns an [`crate::Error`] on failure.
     pub fn list_routes(&mut self) -> Result<Vec<Route>> {
         let rthdr = RouteMessage::builder().family(AF_INET).build()?;
@@ -64,7 +56,7 @@ fn read_rtmsg(msg: &NetlinkMessage) -> Result<(RouteMessage, Vec<RouteAttrValue>
 
         let value_len = aligned_size(hdr.len as usize) - aligned_size_of::<RouteAttrHeader>();
         let value_bytes = reader.take(value_len)?;
-        let value = RouteAttrValue::from(hdr.typ, value_bytes)?;
+        let value = RouteAttrValue::deserialize(hdr.typ, value_bytes)?;
 
         attributes.push(value);
     }

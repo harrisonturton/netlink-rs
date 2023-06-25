@@ -1,4 +1,5 @@
-use crate::{serialize_aligned, Result};
+use crate::bytes::serialize_aligned;
+use crate::Result;
 use serde::{Deserialize, Serialize};
 
 /// Core message types for Netlink packets.

@@ -1,7 +1,7 @@
+use super::aligned_size_of;
+use crate::{Error, Result};
 use bincode::deserialize;
 use serde::de::DeserializeOwned;
-
-use crate::{aligned_size_of, Error, Result};
 
 pub struct SliceReader<'a> {
     slice: &'a [u8],
