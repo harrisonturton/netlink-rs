@@ -39,7 +39,6 @@ impl NetlinkStream {
             let ifinfomsg = reader.read::<InterfaceInfoMessage>()?;
             let attrs = read_attributes(&mut reader)?;
             let link = build_link(ifinfomsg, &attrs);
-            log::info!("{link:?}");
             links.push(link);
         }
 
