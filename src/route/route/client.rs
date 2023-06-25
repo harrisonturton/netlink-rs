@@ -2,9 +2,9 @@ use super::RouteAttrValue;
 use crate::aligned_size;
 use crate::aligned_size_of;
 use crate::reader::SliceReader;
-use crate::route::RouteAttrHeader;
-use crate::route::RouteMessage;
-use crate::route::RouteMessageType;
+use super::RouteAttrHeader;
+use super::RouteMessage;
+use super::RouteMessageType;
 use crate::route::AF_INET;
 use crate::Flag;
 use crate::NetlinkMessage;
@@ -29,7 +29,7 @@ impl NetlinkStream {
     /// List the route table.
     ///
     /// # Errors
-    ///
+    /// 
     /// Returns an [`crate::Error`] on failure.
     pub fn list_routes(&mut self) -> Result<Vec<Route>> {
         let rthdr = RouteMessage::builder().family(AF_INET).build()?;

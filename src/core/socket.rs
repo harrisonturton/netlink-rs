@@ -189,6 +189,11 @@ impl NetlinkStream {
             return Ok(None);
         }
 
+        if hdr.len == 0 {
+            let descriptor = hdr.into_descriptor();
+            return Ok(Some(NetlinkMessage::new(descriptor, Vec::new())));
+        }
+
         let payload_len = hdr.len as usize - aligned_size_of::<NetlinkHeader>();
         let mut payload = vec![0u8; payload_len];
         self.reader
