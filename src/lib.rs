@@ -1,7 +1,6 @@
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 #![warn(clippy::cargo)]
-
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::module_inception)]

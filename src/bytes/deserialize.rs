@@ -1,5 +1,7 @@
 use crate::{Error, Result};
 use bincode::deserialize;
+use nix::libc::{IFA_UNSPEC, IFLA_INFO_KIND, IFNAMSIZ};
+use serde::Deserialize;
 use std::mem::size_of;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -19,6 +21,7 @@ pub(crate) fn deserialize_i32(payload: &[u8]) -> Result<i32> {
 }
 
 pub(crate) fn deserialize_u32(payload: &[u8]) -> Result<u32> {
+    // IFLA_INFO_KIND
     let bytes: [u8; 4] = payload.try_into().map_err(|_| Error::ErrUnexpectedEof)?;
     Ok(u32::from_le_bytes(bytes))
 }
@@ -27,6 +30,10 @@ pub(crate) fn deserialize_ascii(payload: &[u8]) -> String {
     String::from_utf8_lossy(payload)
         .trim_matches(char::from(0))
         .to_owned()
+}
+
+pub(crate) fn deserialize_val<'a, T: Deserialize<'a>>(payload: &'a [u8]) -> Result<T> {
+    deserialize::<T>(payload).map_err(Error::ErrDeserialize)
 }
 
 pub(crate) fn deserialize_ip_addr(payload: &[u8]) -> Result<IpAddr> {

@@ -1,7 +1,9 @@
 use std::net::IpAddr;
 
 use crate::{
-    bytes::{deserialize_ascii, deserialize_ip_addr, deserialize_u32},
+    bytes::{
+        deserialize_ascii, deserialize_i32, deserialize_ip_addr, deserialize_u32, deserialize_val,
+    },
     Error, Result,
 };
 use derive_builder::Builder;
@@ -28,7 +30,7 @@ pub struct InterfaceInfoMessage {
     // Change mask. This value is constant. See
     // https://man7.org/linux/man-pages/man7/rtnetlink.7.html
     #[builder(setter(skip))]
-    #[builder(default = "0xFFFFFFFF")]
+    #[builder(default = "0x0")]
     pub change: u32,
 }
 
@@ -37,6 +39,122 @@ impl InterfaceInfoMessage {
     pub fn builder() -> InterfaceInfoMessageBuilder {
         InterfaceInfoMessageBuilder::default()
     }
+}
+
+// https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/if_link.h#L1342
+#[repr(C)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
+pub struct LinkInfoAttrHeader {
+    pub len: u16,
+    pub typ: LinkInfoAttrType,
+}
+
+#[repr(u16)]
+#[derive(Debug, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
+#[serde(try_from = "u16")]
+pub enum LinkInfoAttrType {
+    Unspec = 0,
+    Kind = 1,
+    Data = 2,
+    XStats = 3,
+    SlaveKind = 4,
+    SlaveData = 5,
+}
+
+#[repr(u16)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum LinkInfoAttrValue {
+    Unspec,
+    Kind(String),
+    Data(Vec<u8>),
+    XStats(Vec<u8>),
+    SlaveKind(Vec<u8>),
+    SlaveData(Vec<u8>),
+}
+
+#[rustfmt::skip]
+impl LinkInfoAttrValue {
+    pub(crate) fn deserialize(typ: LinkInfoAttrType, payload: &[u8]) -> Result<Self> {
+        match typ {
+            LinkInfoAttrType::Unspec => {
+                unimplemented!()
+            }
+            LinkInfoAttrType::Kind => {
+                Ok(Self::Kind(deserialize_ascii(payload)))
+            }
+            LinkInfoAttrType::Data => {
+                unimplemented!()
+            }
+            LinkInfoAttrType::XStats => {
+                unimplemented!()
+            }
+            LinkInfoAttrType::SlaveKind => {
+                unimplemented!()
+            }
+            LinkInfoAttrType::SlaveData => {
+                unimplemented!()
+            }
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
+pub struct LinkStats {
+    pub rx_packets: u32,
+    pub tx_packets: u32,
+    pub rx_bytes: u32,
+    pub tx_bytes: u32,
+    pub rx_errors: u32,
+    pub tx_errors: u32,
+    pub rx_dropped: u32,
+    pub tx_dropped: u32,
+    pub multicast: u32,
+    pub collisions: u32,
+    pub rx_length_errors: u32,
+    pub rx_over_errors: u32,
+    pub rx_crc_errors: u32,
+    pub rx_frame_errors: u32,
+    pub rx_fifo_errors: u32,
+    pub rx_missed_errors: u32,
+    pub tx_aborted_errors: u32,
+    pub tx_carrier_errors: u32,
+    pub tx_fifo_errors: u32,
+    pub tx_heartbeat_errors: u32,
+    pub tx_window_errors: u32,
+    pub rx_compressed: u32,
+    pub tx_compressed: u32,
+    pub rx_nohandler: u32,
+}
+
+#[repr(C)]
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
+pub struct Stats64 {
+    pub rx_packets: u64,
+    pub tx_packets: u64,
+    pub rx_bytes: u64,
+    pub tx_bytes: u64,
+    pub rx_errors: u64,
+    pub tx_errors: u64,
+    pub rx_dropped: u64,
+    pub tx_dropped: u64,
+    pub multicast: u64,
+    pub collisions: u64,
+    pub rx_length_errors: u64,
+    pub rx_over_errors: u64,
+    pub rx_crc_errors: u64,
+    pub rx_frame_errors: u64,
+    pub rx_fifo_errors: u64,
+    pub rx_missed_errors: u64,
+    pub tx_aborted_errors: u64,
+    pub tx_carrier_errors: u64,
+    pub tx_fifo_errors: u64,
+    pub tx_heartbeat_errors: u64,
+    pub tx_window_errors: u64,
+    pub rx_compressed: u64,
+    pub tx_compressed: u64,
+    pub rx_nohandler: u64,
+    pub rx_otherhost_dropped: u64,
 }
 
 /// Attribute of a request or response. See [`LinkAttrValue`] to understand how
@@ -71,7 +189,7 @@ pub enum LinkAttrType {
     Weight,
     Operstate,
     Linkmode,
-    Linkinfo,
+    LinkInfo,
     NetNsPid,
     InterfaceAlias,
     NumVf,
@@ -139,7 +257,7 @@ impl From<LinkAttrType> for u16 {
             LinkAttrType::Weight => 15,
             LinkAttrType::Operstate => 16,
             LinkAttrType::Linkmode => 17,
-            LinkAttrType::Linkinfo => 18,
+            LinkAttrType::LinkInfo => 18,
             LinkAttrType::NetNsPid => 19,
             LinkAttrType::InterfaceAlias => 20,
             LinkAttrType::NumVf => 21,
@@ -194,26 +312,26 @@ pub enum LinkAttrValue {
     Address(IpAddr),
     Broadcast(Vec<u8>),
     InterfaceName(String),
-    MaxTransmissionUnit(Vec<u8>),
+    MaxTransmissionUnit(u32),
     Link(Vec<u8>),
     QueueingDiscipline(Vec<u8>),
-    Stats(Vec<u8>),
+    Stats(LinkStats),
     Cost(Vec<u8>),
     Priority(Vec<u8>),
     Master(Vec<u8>),
     Wireless(Vec<u8>),
     Protinfo(Vec<u8>),
-    TransmissionQueueLen(Vec<u8>),
+    TransmissionQueueLen(u32),
     Map(Vec<u8>),
     Weight(Vec<u8>),
     Operstate(Vec<u8>),
     Linkmode(Vec<u8>),
-    Linkinfo(Vec<u8>),
+    LinkInfo(Vec<u8>),
     NetNsPid(Vec<u8>),
-    InterfaceAlias(Vec<u8>),
+    InterfaceAlias(String),
     NumVf(Vec<u8>),
     VfinfoList(Vec<u8>),
-    Stats64(Vec<u8>),
+    Stats64(Stats64),
     VfPorts(Vec<u8>),
     PortSelf(Vec<u8>),
     AfSpec(Vec<u8>),
@@ -230,8 +348,8 @@ pub enum LinkAttrValue {
     LinkNetnsid(Vec<u8>),
     PhysPortName(String),
     ProtoDown(Vec<u8>),
-    GsoMaxSegs(Vec<u8>),
-    GsoMaxSize(Vec<u8>),
+    GsoMaxSegs(u32),
+    GsoMaxSize(u32),
     Pad(Vec<u8>),
     Xdp(Vec<u8>),
     Event(Vec<u8>),
@@ -241,8 +359,8 @@ pub enum LinkAttrValue {
     CarrierUpCount(Vec<u8>),
     CarrierDownCount(Vec<u8>),
     NewInterfaceIndex(Vec<u8>),
-    MinMtu(Vec<u8>),
-    MaxMtu(Vec<u8>),
+    MinMtu(u32),
+    MaxMtu(u32),
     PropList(Vec<u8>),
     AltInterfaceName(String),
     PermAddress(IpAddr),
@@ -272,7 +390,7 @@ impl LinkAttrValue {
                 Ok(Self::InterfaceName(deserialize_ascii(payload)))
             },
             LinkAttrType::MaxTransmissionUnit => {
-                Ok(Self::MaxTransmissionUnit(payload.to_vec()))
+                deserialize_u32(payload).map(Self::MaxTransmissionUnit)
             },
             LinkAttrType::Link => {
                 Ok(Self::Link(payload.to_vec()))
@@ -281,7 +399,7 @@ impl LinkAttrValue {
                 Ok(Self::QueueingDiscipline(payload.to_vec()))
             },
             LinkAttrType::Stats => {
-                Ok(Self::Stats(payload.to_vec()))
+                deserialize_val::<LinkStats>(payload).map(Self::Stats)
             },
             LinkAttrType::Cost => {
                 Ok(Self::Cost(payload.to_vec()))
@@ -299,7 +417,7 @@ impl LinkAttrValue {
                 Ok(Self::Protinfo(payload.to_vec()))
             },
             LinkAttrType::TransmissionQueueLen => {
-                Ok(Self::TransmissionQueueLen(payload.to_vec()))
+                deserialize_u32(payload).map(Self::TransmissionQueueLen)
             },
             LinkAttrType::Map => {
                 Ok(Self::Map(payload.to_vec()))
@@ -313,14 +431,14 @@ impl LinkAttrValue {
             LinkAttrType::Linkmode => {
                 Ok(Self::Linkmode(payload.to_vec()))
             },
-            LinkAttrType::Linkinfo => {
-                Ok(Self::Linkinfo(payload.to_vec()))
+            LinkAttrType::LinkInfo => {
+                Ok(Self::LinkInfo(payload.to_vec()))
             },
             LinkAttrType::NetNsPid => {
                 Ok(Self::NetNsPid(payload.to_vec()))
             },
             LinkAttrType::InterfaceAlias => {
-                Ok(Self::InterfaceAlias(payload.to_vec()))
+                Ok(Self::InterfaceAlias(deserialize_ascii(payload)))
             },
             LinkAttrType::NumVf => {
                 Ok(Self::NumVf(payload.to_vec()))
@@ -329,7 +447,7 @@ impl LinkAttrValue {
                 Ok(Self::VfinfoList(payload.to_vec()))
             },
             LinkAttrType::Stats64 => {
-                Ok(Self::Stats64(payload.to_vec()))
+                deserialize_val::<Stats64>(payload).map(Self::Stats64)
             },
             LinkAttrType::VfPorts => {
                 Ok(Self::VfPorts(payload.to_vec()))
@@ -380,10 +498,10 @@ impl LinkAttrValue {
                 Ok(Self::ProtoDown(payload.to_vec()))
             },
             LinkAttrType::GsoMaxSegs => {
-                Ok(Self::GsoMaxSegs(payload.to_vec()))
+                deserialize_u32(payload).map(Self::GsoMaxSegs)
             },
             LinkAttrType::GsoMaxSize => {
-                Ok(Self::GsoMaxSize(payload.to_vec()))
+                deserialize_u32(payload).map(Self::GsoMaxSize)
             },
             LinkAttrType::Pad => {
                 Ok(Self::Pad(payload.to_vec()))
@@ -413,10 +531,10 @@ impl LinkAttrValue {
                 Ok(Self::NewInterfaceIndex(payload.to_vec()))
             },
             LinkAttrType::MinMtu => {
-                Ok(Self::MinMtu(payload.to_vec()))
+                deserialize_u32(payload).map(Self::MinMtu)
             },
             LinkAttrType::MaxMtu => {
-                Ok(Self::MaxMtu(payload.to_vec()))
+                deserialize_u32(payload).map(Self::MaxMtu)
             },
             LinkAttrType::PropList => {
                 Ok(Self::PropList(payload.to_vec()))

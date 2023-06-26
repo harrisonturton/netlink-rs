@@ -6,14 +6,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut conn = NetlinkStream::connect()?;
 
-    for link in conn.list_links()? {
-        log::info!(
-            "index={:?} name={:?} addr={:?}",
-            link.index,
-            link.name,
-            link.addr,
-        );
-    }
+    let link = conn.get_link("lo")?;
+    log::info!("{link:?}");
+
+    // for link in conn.list_links()? {
+    //     log::info!("{link:?}");
+    //     // log::info!(
+    //     //     "index={:?} name={:?} addr={:?}",
+    //     //     link.index,
+    //     //     link.name,
+    //     //     link.addr,
+    //     // );
+    // }
 
     Ok(())
 }
