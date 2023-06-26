@@ -21,3 +21,4 @@ pub mod error;
 pub use error::*;
 
 pub(crate) mod bytes;
+pub mod generic;

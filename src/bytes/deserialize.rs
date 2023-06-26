@@ -1,6 +1,5 @@
 use crate::{Error, Result};
 use bincode::deserialize;
-use nix::libc::{IFA_UNSPEC, IFLA_INFO_KIND, IFNAMSIZ};
 use serde::Deserialize;
 use std::mem::size_of;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};

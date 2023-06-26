@@ -171,7 +171,7 @@ pub struct LinkAttrHeader {
 #[derive(Debug, PartialEq, Copy, Clone, Serialize_repr, Deserialize_repr)]
 #[serde(try_from = "u16")]
 pub enum LinkAttrType {
-    Unspec,
+    Unspec = 0,
     Address,
     Broadcast,
     InterfaceName,
@@ -234,6 +234,79 @@ pub enum LinkAttrType {
     TsoMaxSize,
     TsoMaxSegs,
     AllMulti,
+}
+
+impl TryFrom<u16> for LinkAttrType {
+    type Error = crate::Error;
+
+    fn try_from(value: u16) -> std::result::Result<Self, Self::Error> {
+        match value {
+            0 => Ok(LinkAttrType::Unspec),
+            1 => Ok(LinkAttrType::Address),
+            2 => Ok(LinkAttrType::Broadcast),
+            3 => Ok(LinkAttrType::InterfaceName),
+            4 => Ok(LinkAttrType::MaxTransmissionUnit),
+            5 => Ok(LinkAttrType::Link),
+            6 => Ok(LinkAttrType::QueueingDiscipline),
+            7 => Ok(LinkAttrType::Stats),
+            8 => Ok(LinkAttrType::Cost),
+            9 => Ok(LinkAttrType::Priority),
+            10 => Ok(LinkAttrType::Master),
+            11 => Ok(LinkAttrType::Wireless),
+            12 => Ok(LinkAttrType::Protinfo),
+            13 => Ok(LinkAttrType::TransmissionQueueLen),
+            14 => Ok(LinkAttrType::Map),
+            15 => Ok(LinkAttrType::Weight),
+            16 => Ok(LinkAttrType::Operstate),
+            17 => Ok(LinkAttrType::Linkmode),
+            18 => Ok(LinkAttrType::LinkInfo),
+            19 => Ok(LinkAttrType::NetNsPid),
+            20 => Ok(LinkAttrType::InterfaceAlias),
+            21 => Ok(LinkAttrType::NumVf),
+            22 => Ok(LinkAttrType::VfinfoList),
+            23 => Ok(LinkAttrType::Stats64),
+            24 => Ok(LinkAttrType::VfPorts),
+            25 => Ok(LinkAttrType::PortSelf),
+            26 => Ok(LinkAttrType::AfSpec),
+            27 => Ok(LinkAttrType::Group),
+            28 => Ok(LinkAttrType::NetNsFd),
+            29 => Ok(LinkAttrType::ExtMask),
+            30 => Ok(LinkAttrType::Promiscuity),
+            31 => Ok(LinkAttrType::NumTxQueues),
+            32 => Ok(LinkAttrType::NumRxQueues),
+            33 => Ok(LinkAttrType::Carrier),
+            34 => Ok(LinkAttrType::PhysPortId),
+            35 => Ok(LinkAttrType::CarrierChanges),
+            36 => Ok(LinkAttrType::PhysSwitchId),
+            37 => Ok(LinkAttrType::LinkNetnsid),
+            38 => Ok(LinkAttrType::PhysPortName),
+            39 => Ok(LinkAttrType::ProtoDown),
+            40 => Ok(LinkAttrType::GsoMaxSegs),
+            41 => Ok(LinkAttrType::GsoMaxSize),
+            42 => Ok(LinkAttrType::Pad),
+            43 => Ok(LinkAttrType::Xdp),
+            44 => Ok(LinkAttrType::Event),
+            45 => Ok(LinkAttrType::NewNetnsid),
+            46 => Ok(LinkAttrType::IfNetnsid),
+            46 => Ok(LinkAttrType::TargetNetnsid),
+            47 => Ok(LinkAttrType::CarrierUpCount),
+            48 => Ok(LinkAttrType::CarrierDownCount),
+            49 => Ok(LinkAttrType::NewInterfaceIndex),
+            50 => Ok(LinkAttrType::MinMtu),
+            51 => Ok(LinkAttrType::MaxMtu),
+            52 => Ok(LinkAttrType::PropList),
+            53 => Ok(LinkAttrType::AltInterfaceName),
+            54 => Ok(LinkAttrType::PermAddress),
+            55 => Ok(LinkAttrType::ProtoDownReason),
+            56 => Ok(LinkAttrType::ParentDevName),
+            57 => Ok(LinkAttrType::ParentDevBusName),
+            58 => Ok(LinkAttrType::GroMaxSize),
+            59 => Ok(LinkAttrType::TsoMaxSize),
+            60 => Ok(LinkAttrType::TsoMaxSegs),
+            61 => Ok(LinkAttrType::AllMulti),
+            _ => panic!("Unexpected LinkAttrType {value}")
+        }
+    }
 }
 
 impl From<LinkAttrType> for u16 {

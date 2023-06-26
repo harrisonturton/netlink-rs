@@ -189,7 +189,6 @@ impl NetlinkMessageBuilder {
     /// Returns an [`crate::Error`] when `payload` cannot be serialized.
     pub fn append<T: Serialize>(mut self, payload: T) -> Result<Self> {
         let mut bytes = serialize_aligned(payload)?;
-        log::debug!("Appending {} bytes", bytes.len());
         self.payload.append(&mut bytes);
         Ok(self)
     }

@@ -58,11 +58,17 @@ impl RouteMessage {
 
 /// Attribute of a request or response. See [`RouteAttrValue`] to understand how
 /// to interpret the data pointed at by this header.
+pub type RouteAttrHeader = AttrHeader<RouteAttrType>;
+// pub struct RouteAttrHeader {
+//     pub len: u16,
+//     pub typ: RouteAttrType,
+// }
+
 #[repr(C)]
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct RouteAttrHeader {
+pub struct AttrHeader<T> {
     pub len: u16,
-    pub typ: RouteAttrType,
+    pub typ: T,
 }
 
 /// A MAC or Ethernet address.

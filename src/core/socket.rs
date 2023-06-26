@@ -159,6 +159,45 @@ impl NetlinkStream {
         Ok(())
     }
 
+    pub fn recv_gen<T, P>(&mut self) -> Result<Option<crate::generic::NetlinkMessage<T, P>>>
+    where
+        T: crate::generic::MessageType,
+        P: for<'de> crate::generic::Deserialize<'de>,
+    {
+        use crate::generic::{NetlinkHeader, NetlinkMessage};
+
+        if !self.has_remaining_reads {
+            return Ok(None);
+        }
+
+        let header = {
+            let buf = &mut [0u8; aligned_size_of::<NetlinkHeader<u16>>()];
+            self.reader.read(buf).map_err(Error::ErrReadSocket)?;
+            let hdr = deserialize::<NetlinkHeader<u16>>(buf).map_err(Error::ErrDeserialize)?;
+            let nlmsg_type = T::from(hdr.nlmsg_type);
+            NetlinkHeader::clone_with_type(hdr, nlmsg_type)
+        };
+
+        if header.has_flags(Flag::Multi) {
+            self.has_remaining_reads = true;
+        }
+
+        let raw_nlmsg_type: u16 = header.nlmsg_type.clone().into();
+        if u16::from(MessageType::Done) == raw_nlmsg_type {
+            self.has_remaining_reads = false;
+            return Ok(None);
+        }
+
+        let payload = {
+            let len = header.nlmsg_len as usize - aligned_size_of::<NetlinkHeader<u16>>();
+            let buf = &mut vec![0u8; len];
+            self.reader.read(buf).map_err(Error::ErrReadSocket)?;
+            P::deserialize(buf)?
+        };
+
+        Ok(Some(NetlinkMessage { header, payload }))
+    }
+
     /// Attempt to receive a single Netlink message.
     ///
     /// This will return [`None`] if a message header with [`MessageType::Done`]
